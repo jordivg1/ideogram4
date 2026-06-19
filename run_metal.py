@@ -131,7 +131,21 @@ def main():
   ap.add_argument("--preset", choices=sorted(PRESETS), default="V4_TURBO_12")
   ap.add_argument("--seed", type=int, default=0)
   ap.add_argument("--cfg", action="store_true", help="usa los 2 DiTs (MUY justo en 24GB)")
+  ap.add_argument("--magic", action="store_true", help="expande el prompt a JSON (IDEOGRAM_API_KEY)")
   args = ap.parse_args()
+
+  prompt = args.prompt
+  if args.magic:
+    import os
+
+    from ideogram4 import DEFAULT_MAGIC_PROMPT, MAGIC_PROMPTS, aspect_ratio_from_size
+
+    key = os.environ.get("IDEOGRAM_API_KEY") or os.environ.get("MAGIC_PROMPT_API_KEY")
+    if not key:
+      raise SystemExit("--magic necesita IDEOGRAM_API_KEY (en .env)")
+    print("[magic] expandiendo prompt a JSON...", flush=True)
+    m = MAGIC_PROMPTS[DEFAULT_MAGIC_PROMPT](api_key=key)
+    prompt = m.expand(args.prompt, aspect_ratio=aspect_ratio_from_size(args.size, args.size))
 
   device = torch.device("mps")
   dtype = torch.bfloat16
@@ -161,7 +175,7 @@ def main():
   pipe.latent_shift = shift.to(device)
   pipe.latent_scale = scale.to(device)
 
-  inputs = pipe._build_inputs([args.prompt], height=h, width=w)
+  inputs = pipe._build_inputs([prompt], height=h, width=w)
   print("[fase A] codificando prompt...", flush=True)
   llm_features = pipe._encode_text(
     inputs["token_ids"], inputs["text_position_ids"], inputs["indicator"]
