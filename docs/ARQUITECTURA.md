@@ -473,6 +473,15 @@ Medidas (M5 Pro, 24 GB, 512px, turbo 12, sin CFG):
 - Comparativa: la ruta CPU (`run_inference.py --device cpu`) no terminaba en 27 min
   por *thrashing* de swap (26 GB de pesos en 24 GB de RAM).
 
+**Calidad: CFG es obligatorio.** Sin CFG (un solo DiT) la imagen colapsa a gris/ruido:
+el modelo condicional solo no da una velocidad válida (se entrenó para usarse en la
+combinación de §10.6). Con `--cfg --magic` (los 2 DiTs + caption JSON) la imagen sale
+correcta, pero los ~17 GB residentes hacen *swap*:
+- Con CFG: **~60–95 s/paso** (vs 3 s sin CFG), total **~21 min** para 512px/turbo.
+- Conclusión: en 24 GB hay que elegir **velocidad XOR calidad**. La versión buena
+  (CFG + magic) es correcta pero impracticable por RAM → para uso real, **GPU CUDA**
+  (ruta `nf4`, entra en 24 GB de VRAM y va en segundos).
+
 Alternativa no implementada para CFG completo en 24 GB: **carga en streaming** de los
 shards (mover tensor a tensor a MPS y liberar) para evitar el pico transitorio
 `state_dict (CPU) + modelo (MPS)`, manteniendo los 2 DiTs (~17.4 GB) residentes.
