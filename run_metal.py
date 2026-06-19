@@ -56,8 +56,9 @@ def _fp8_init(self, in_features, out_features, bias, compute_dtype):
 
 def _fp8_forward(self, x):
   lut = _lut(self.weight.device, x.dtype)
-  # gather: uint8 -> bf16 (descuantiza una capa cada vez, transitorio)
-  w = lut[self.weight.long()] * self.weight_scale.to(x.dtype).unsqueeze(1)
+  # gather: uint8 -> bf16 (descuantiza una capa cada vez, transitorio).
+  # MPS acepta índices int32; evita el temporal int64 de weight.long().
+  w = lut[self.weight.to(torch.int32)] * self.weight_scale.to(x.dtype).unsqueeze(1)
   bias = self.bias.to(x.dtype) if self.bias is not None else None
   return F.linear(x, w, bias)
 
@@ -210,17 +211,18 @@ def main():
   g = torch.Generator()  # en CPU para evitar rarezas del generador MPS
   g.manual_seed(args.seed)
   z = torch.randn(1, num_image_tokens, latent_dim, dtype=torch.float32, generator=g).to(device)
-  text_z_padding = torch.zeros(1, max_text, latent_dim, dtype=torch.float32, device=device)
+  pos_z = torch.empty(1, max_text + num_image_tokens, latent_dim, dtype=torch.float32, device=device)
+  pos_z[:, :max_text].zero_()
 
   print(f"[fase B] denoising: {num_steps} pasos (CFG={'on' if args.cfg else 'off'})", flush=True)
-  with torch.no_grad():
+  with torch.inference_mode():
     for i in range(num_steps - 1, -1, -1):
       ts = time.time()
       t_val = float(schedule(step_intervals[i + 1].unsqueeze(0)).item())
       s_val = float(schedule(step_intervals[i].unsqueeze(0)).item())
       t = torch.full((1,), t_val, dtype=torch.float32, device=device)
 
-      pos_z = torch.cat([text_z_padding, z], dim=1)
+      pos_z[:, max_text:].copy_(z)
       pos_out = cond(
         llm_features=llm_features,
         x=pos_z,

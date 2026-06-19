@@ -466,8 +466,12 @@ límite de RAM). Sin CFG, `v = v_cond` directamente; con CFG se carga el
 `unconditional_transformer` y se aplica §10.6.
 
 Medidas (M5 Pro, 24 GB, 512px, turbo 12, sin CFG):
-- Fase A (encoder, carga + encode): ~131 s.
-- Per paso de denoising: _(pendiente — se rellena al terminar)_.
+- Fase A (encoder, carga + encode en MPS): ~124–131 s.
+- Denoising: paso 1 ~16 s (warmup/compilación de kernels MPS), pasos siguientes
+  **~3 s/paso** en régimen.
+- 12 pasos ≈ ~50 s de cómputo. Total extremo-a-extremo ~3 min.
+- Comparativa: la ruta CPU (`run_inference.py --device cpu`) no terminaba en 27 min
+  por *thrashing* de swap (26 GB de pesos en 24 GB de RAM).
 
 Alternativa no implementada para CFG completo en 24 GB: **carga en streaming** de los
 shards (mover tensor a tensor a MPS y liberar) para evitar el pico transitorio
