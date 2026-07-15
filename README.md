@@ -30,9 +30,10 @@ We believe openness drives innovation, and we invite the research community to i
 3. [Performance](#performance)
 4. [Quick Start](#quick-start)
 5. [Model Summary](#model-summary)
-6. [Prompting Guide](#prompting-guide)
-7. [Documentation](#documentation)
-8. [Citation](#citation)
+6. [Ideogram 4 vs Krea 2](#ideogram-4-vs-krea-2)
+7. [Prompting Guide](#prompting-guide)
+8. [Documentation](#documentation)
+9. [Citation](#citation)
 
 ## News
 
@@ -261,6 +262,34 @@ For full architecture details, see
 how the pipeline components fit together, see
 [docs/pipeline.md](docs/pipeline.md).
 
+## Ideogram 4 vs Krea 2
+
+Ideogram 4 and Krea 2 are both modern latent flow / rectified-flow image models
+built around Diffusion Transformer backbones and Qwen3-VL-class conditioning.
+The practical difference is where each system spends its complexity budget:
+Ideogram 4 exposes a concrete design-control inference stack in this repo, while
+Krea 2's technical report emphasizes broad aesthetic exploration, style
+references, prompt-expander training, and a large multi-stage post-training
+pipeline.
+
+```mermaid
+flowchart LR
+  Shared["Shared modern recipe: DiT + flow + VLM conditioning"] --> I["Ideogram 4"]
+  Shared --> K["Krea 2"]
+  I --> IC["Structured JSON captions"]
+  I --> IL["Bounding-box layout"]
+  I --> IT["Typography and palette control"]
+  I --> IA["Asymmetric CFG inference"]
+  K --> KD["Data curation pipeline"]
+  K --> KP["Prompt expander"]
+  K --> KS["Style references"]
+  K --> KR["SFT / PO / RL stack"]
+```
+
+See [docs/krea2_comparison.md](docs/krea2_comparison.md) for the full
+side-by-side comparison and [docs/diagrams.md](docs/diagrams.md) for the diagram
+gallery.
+
 ## Prompting Guide
 
 Ideogram 4 is trained exclusively on **structured JSON captions**. While
@@ -312,6 +341,8 @@ See [docs/prompting.md](docs/prompting.md) for a full guide.
 | [docs/inference.md](docs/inference.md) | Sampler presets, parameter reference, resolutions, optimization tips |
 | [docs/model_architecture.md](docs/model_architecture.md) | Architecture diagram, DiT spec, component details |
 | [docs/pipeline.md](docs/pipeline.md) | Conceptual pipeline walkthrough — how all components fit together |
+| [docs/krea2_comparison.md](docs/krea2_comparison.md) | Side-by-side comparison of Ideogram 4 and Krea 2 |
+| [docs/diagrams.md](docs/diagrams.md) | Mermaid diagrams for the repo, inference flow, CFG, and model comparison |
 | [docs/development.md](docs/development.md) | Dev setup, pre-commit hooks, contributing |
 | [docs/safety.md](docs/safety.md) | Pre-training, post-training, and inference-time safety mitigations; how to report violations |
 
